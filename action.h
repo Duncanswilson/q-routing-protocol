@@ -10,7 +10,7 @@ double send(int e, int n, int link)
   double time_in_queue = curtime-events[e].qtime-internode;
   double nexttime;			/* Next arrival time. */
   int n_to;
-  double new_est;
+  double reward;
 
   /* Figure out neighbor. */
   if ((link < 0) || (link >= nlinks[n]))	/* No such link! */
@@ -31,10 +31,10 @@ double send(int e, int n, int link)
     total_hops += events[e].hops + 1;
 
     /* It has waited and is now done. */
-    new_est = time_in_queue+internode;
+    reward = 1.0; //give a postive reward as you're at the destination //time_in_queue+internode;
     active_packets--;
     free_event(e);
-    return(new_est);
+    return(reward);
   }
 
   /* Is sending node full?  If so, change destination to be the node */
@@ -61,12 +61,12 @@ double send(int e, int n, int link)
   /* It took the wait + the send + however long it will take from there. */
   //printf("Estimate Q at node: %d, %f  \n", n_to, estimate_Q(n_to, events[e].dest));
   if(learntype == SARSA)
-    new_est = time_in_queue+internode;
+    reward = -time_in_queue-internode;
   else
-    new_est = time_in_queue+internode+estimate_Q(n_to, events[e].dest);
+    reward = -time_in_queue-internode+estimate_Q(n_to, events[e].dest);
 
   necho_packets++;
-  return(new_est);
+  return(reward);
 }
 
 /* Pretends to send node n's top of queue along given link.   */
@@ -78,7 +78,7 @@ double pseudosend(int e, int n, int link)
 					/* How long waiting? */
   double time_in_queue = curtime-events[e].qtime-internode;
   int n_to;
-  double new_est;
+  double reward;
 
   /* Figure out neighbor. */
   if ((link < 0) || (link >= nlinks[n]))	/* No such link! */
@@ -91,8 +91,8 @@ double pseudosend(int e, int n, int link)
   if (n_to == events[e].dest) {		/* Destination matches neighbor! */
 
     /* It has waited and is now done. */
-    new_est = time_in_queue+internode;
-    return(new_est);
+    reward = 1.0; //give a postive reward as you're at the destination //time_in_queue+internode;
+    return(reward);
   }
 
   /* Is sending node full?  If so, change destination to be the node */
@@ -104,10 +104,10 @@ double pseudosend(int e, int n, int link)
   /* Ok, the packet pretended to move one link. */
   /* It took the wait + the send + however long it will take from there. */
   if(learntype == SARSA)
-    new_est = time_in_queue+internode;
+    reward = -time_in_queue-internode;
   else
-    new_est = time_in_queue+internode+estimate_Q(n_to, events[e].dest);
+    reward = -time_in_queue-internode+estimate_Q(n_to, events[e].dest);
 
   necho_packets++;
-  return(new_est);
+  return(reward);
 }

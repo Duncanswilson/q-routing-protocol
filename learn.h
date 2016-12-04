@@ -44,7 +44,7 @@ double estimate_Q(int n_from, int n_to)
 
     for (i = 1; i < nlinks[n_from]; i++) {
       current = Q[n_from][i][n_to];
-      if (current < best) best = current;
+      if (current > best) best = current;
     }
 
     return(best);
@@ -60,7 +60,7 @@ do_learn(n, link, dest, new_est)
   double out = (*cell);
 
   //printf("wtf? newest:  %d, out: %d, eta: %f,  updateval: %f \n", new_est, out, eta, (new_est-out)*eta);
-  *cell += (new_est-out)*eta;  /* Move a fraction to new_est. */
+  *cell += (new_est-out)*0.7;  /* Move a fraction to new_est. */
 }
 
 

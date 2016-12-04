@@ -89,12 +89,12 @@ int interqueuen[MAXNODES];		/* Initialized to interqueue. */
 
 /* User variables. */
 int strat = LEARN;			/* How choose actions? */
-int learntype = SARSA;			/* What learning type (V/Q)? */
+int learntype = VL;			/* What learning type (V/Q)? */
 char *graphname = "lata.net";	/* Where get the network? */
 double interreport = 100.0;		/* Time between reports. */
 double interqueue = 1.0;		/* Time between handlings. (init) */
 double internode = 1.0;			/* Time in transit. */
-double epsilon = 0.0;			/* Tolerance in Q for link choice. */
+double epsilon = 0.1;			/* Tolerance in Q for link choice. */
 int maxpackets = 10000;			/* Packet limit in network. */
 int quit_criteria = 3;			/* How many successful reports */
 					/* before quitting? */
@@ -102,7 +102,7 @@ int queuelimit = 1000;			/* Max elements per queue. */
 int queuelevels = 10;			/* Queue levels to perceptron. */
 double eta = 0.7;			/* How fast to learn? */
 double vprob = 1.0;			/* prob of random echo packet. */
-double callmean = 1;			/* When next call? */
+double callmean = 3;			/* When next call? */
 double callstd = 0.2;
 char *polfile = "";			/* Place to store the policy. */
 
@@ -141,9 +141,7 @@ void dump_dest();		/* Policy for a given dest. */
 
 /* Returns a new event number (off the free list). */
 int
-create_event(time, dest)
-     double time;
-     int dest;
+create_event(double time, int dest)
 {
   int e;
 
@@ -170,10 +168,7 @@ create_event(time, dest)
 }
 
 /* Returns 0 on failure. */
-int
-push_event(e, time)
-     int e;
-     double time;
+int push_event(int e, double time)
 {
   events[e].qtime = time;
   queuetop = meldheap(queuetop, e);
@@ -182,9 +177,7 @@ push_event(e, time)
 }
 
 /* Given a used event structure, return it to the free list. */
-void
-free_event(e)
-     int e;
+void free_event(int e)
 {
   events[e].left = freelist;
   freelist = e;

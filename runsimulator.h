@@ -4,9 +4,7 @@
 /**/
 /**//**//**//**//**//**//**//**//**//**//**//**//**//**//**//**//**//**//**/
 
-void
-do_sim(timelimit)
-     double timelimit;
+void do_sim() //double timelimit)
 {
   int e;	/* Event to handle. */
   double curtime;
@@ -58,7 +56,7 @@ int start_packet(double time)
 
   if (active_packets >= maxpackets) return(Nil);
 
-  n_to = create(nnodes);
+  n_to = create(nnodes); //this is where the randomness comes in
 
   /* Find a node (different from starting loc). */
   for (n_from = create(nnodes); n_from==n_to; n_from = create(nnodes));

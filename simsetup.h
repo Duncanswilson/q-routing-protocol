@@ -8,10 +8,8 @@
 /* Given an argc and an argv, process the arguments and set global */
  /* variables.  Some of these only make sense at startup.  Others */
  /* don't make sense at start up. */
-void
-get_globals(argc, argv)
-     int argc;
-     char *argv[];
+void get_globals(int argc, char *argv[])
+
 {
   /* Command line params. */
   while (argc > 1) {
@@ -76,6 +74,7 @@ get_globals(argc, argv)
       argv += 2;
     }
     else if (!strcmp(argv[1], "eta")) {
+      printf("Literally how could I get here more than once?\n" );
       eta = DOUBLE(atof(argv[2]));
       argc -= 2;
       argv += 2;
@@ -148,8 +147,7 @@ get_globals(argc, argv)
 }
 
 /* Setup graph parameters. */
-void
-init_graph(char *filename)
+void init_graph(char *filename)
 {
   char line[300];	/* Line from the file. */
   FILE *graph;

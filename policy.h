@@ -57,13 +57,19 @@ int choose_link(int n, int dest)
   case LEARN:	/* True learning. */
   {
     double best = estimate_Q(n, dest);
-    int i, best_count = 0, best_link;
+    int i, best_link;
+    int best_count = 0;
 
     for (i = 0; i < nlinks[n]; i++) {
-if (Q[n][i][dest] <= best+epsilon) {
-  best_count++;
-  if (one_in(best_count)) best_link = i;
-}
+      if (Q[n][i][dest] == best)
+        best_link = i;
+    }
+
+    for (i = 0; i < nlinks[n]; i++) {
+      if (Q[n][i][dest] >= best+epsilon) {
+        best_count++;
+        if (i != 0 && i != 1 & one_in(best_count)) best_link = i;
+        }
     }
     return(best_link);
   }

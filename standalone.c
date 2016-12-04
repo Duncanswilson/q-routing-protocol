@@ -26,11 +26,27 @@ void init_randomizer(){
     create(10);
 }
 
-void randomize(){init_randomizer();}
+void randomize()
+{
+  init_randomizer();
+}
 
-int create(maxnum){return nrand48(random_seed48)%Max(1,maxnum);}
-int one_in(n){if (create(n)==0) return 1; else return 0;}
-double fran() {return erand48(random_seed48);}
+int create(maxnum)
+{
+  return nrand48(random_seed48)%Max(1,maxnum);
+}
+
+
+int one_in(n)
+{
+  if (create(n)==0) return 1;
+  else return 0;
+}
+double fran()
+{
+  return erand48(random_seed48);
+}
+
 int with_prob(p)
      double p;
 {
