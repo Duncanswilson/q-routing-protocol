@@ -27,8 +27,7 @@ nlinks = [None]*MAXNODES			/* How many connected to? */
 xnode = [None]*MAXNODES
 ynode = [None]*MAXNODES  	/* Coordinates of nodes. */
 
-enqueued = [None]*MAXNODES	# Time of last in line. */
-nenqueued = [None]*MAXNODES	# How many in queue? */
+
 
 # /* For tcl stuff. */
 # int link_activity[MAXNODES][MAXNODES];
@@ -47,8 +46,6 @@ class event:
         self.node = UNKNOWN
         self.birth = time
         self.hops = 0
-        self.left = Nil
-        self.right = Nil
         self.etime = time
         self.qtime = time
 
@@ -107,12 +104,10 @@ from os import path
 import math
 import random
 
-'''
-
-'''
 
 class NetworkSimulatorEnv(gym.Env):
 
+    #We init the network simulator here 
     def __init__(self):
         self.viewer = None
 
@@ -120,42 +115,59 @@ class NetworkSimulatorEnv(gym.Env):
         self.success_count = 0
 
 
-        self.interqueuen = [None]*MAXNODES		        #Initialized to interqueue. */
-        self.down =  [None][None]*(MAXNODES,MAXNODES)
+        self.interqueuen = [interqueue]*MAXNODES		        #Initialized to interqueue. */
+        self.down =  [0][0]*(MAXNODES,MAXNODES)
+
 
         self.action_space = spaces.Box(MAXLINKS (1,))
         self.observation_space = spaces.Box(low=np.asarray([0,0]), high=np.asarray([0,0]))
+
+        self.event_queue = []
+
+        e = event(0.0, 0)
+        events[e].source = REPORT
+        events[e].etime = 0.0
+        heappush(event_queue, (0.0, e))
+
+        e = event(0.0, 0)
+        events[e].source = INJECT
+        events[e].etime = np.random.poisson(callmean)
+        heappush(event_queue, (0.0, e))
+
+        enqueued = [0.0]*MAXNODES
+        nenqueued = [0]*MAXNODES
+  }
+
         self.reset()
         print("here")
 
 
     def _reset(self):
+
+        self.state = np.random.uniform(low=0, high=nnodes, size=(2,))
+
         self.done = False
 
-        for i in range(nnodes):
-            self.interqueuen[i] = interqueue
-            for j in range(nnodes):
-                self.down[i][j] = 0
+        self.interqueuen = [interqueue]*MAXNODES		        #Initialized to interqueue. */
+        self.down =  [0][0]*(MAXNODES,MAXNODES)
 
-        freelist = Nil;
-        for e in range(MAXEVENTS):
-            free_event(e);
+        self.action_space = spaces.Box(MAXLINKS (1,))
+        self.observation_space = spaces.Box(low=np.asarray([0,0]), high=np.asarray([0,0]))
 
-        # /* Put in initial injection and report events. */
-        self.queuetop = Nil
-        e = create_event(0.0, 0)
+        self.event_queue = []
+
+        e = event(0.0, 0)
         events[e].source = REPORT
-        events[e].etime = 0.0	/* Do this right away. */
-        push_event(e, 0.0)
-        e = create_event(0.0, 0)
-        events[e].source = INJECT;
-        events[e].etime = poisson(callmean)
-        push_event(e, 0.0)
+        events[e].etime = 0.0
+        heappush(event_queue, (0.0, e))
 
-  /* Empty all node queues. */
-  for (i = 0; i < nnodes; i++) {
-    enqueued[i] = 0.0;
-    nenqueued[i] = 0;
+        e = event(0.0, 0)
+        events[e].source = INJECT
+        events[e].etime = np.random.poisson(callmean)
+        heappush(event_queue, (0.0, e))
+
+        enqueued = [0.0]*MAXNODES
+        nenqueued = [0]*MAXNODES
   }
         return self.state
 
