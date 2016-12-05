@@ -57,21 +57,22 @@ let alpha be the learning rate (a scalar) and gamma be the discount factor. (if 
 
 ## Current Development Outline
   - Duncan:
-    - Understand the simulator better. For instance what is an episode? An epoch?
+~    - Understand the simulator better. For instance what is an episode? An epoch?~
 
-    - Understand how the c code reads in the graph file and read in the 6x6.net file in Python (in its own file g, come on...)
+~    - Understand how the c code reads in the graph file and read in the 6x6.net file in Python (in its own file g, come on...)~
 
-    - Create a deterministic time-series of ((src,dest),injection_time) tuples for testing our environment
+~    - Create a deterministic time-series of ((src,dest),injection_time) tuples for testing our environment~
 
-    - Finish writing the environment class
+    ~- Finish writing the environment class~
 
+I've finished the env and agent class. still issues in the environment with it never getting to the source. Could both be an issue with the policy or my simulator. I'll be refactoring all of it tomorrow morning!  :) 
 
   - Catherine:
     - Read over all of the code in the repo at a high level. Run some tests and make sure that you somewhat get what the C simulator is doing.
 
     - Pull the most recent version of Open AI's gym repo and read over their introduction documentation and this q learning agent https://github.com/openai/gym/blob/master/examples/agents/tabular_q_agent.py and a general reference to the example agents in their repo can be found here: https://github.com/openai/gym/blob/master/docs/agents.md.
 
-    - Touch base with Duncan about what state the simulator environment is in and start developing the q learning agent class, based off of the one linked above. This will involve creating a class out of the shitty implementation I did in learn.py. def rely on the stuff in the gym repo and the C simulator more than what I wrote. 
+    - Touch base with Duncan about what state the simulator environment is in and start developing the q learning agent class, based off of the one linked above. This will involve creating a class out of the shitty implementation I did in learn.py. def rely on the stuff in the gym repo and the C simulator more than what I wrote.
 
     - If the agent is easy and we're really ahead on time projections, it would be cool to make a visualization of the problem (like the other gym envs have) possibly start looking into doing this?   
 
