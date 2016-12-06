@@ -127,7 +127,7 @@ class NetworkSimulatorEnv(gym.Env):
             self.current_event = self.get_new_packet_bump()
 
 
-            return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
+            return ((current_event.node, current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
 
 
     def _reset(self):
