@@ -2,10 +2,19 @@ import gym
 from gym import spaces
 import numpy as np
 import heapq
+import collections
 from os import path
 from os import sys
 import math
 import random
+try:
+    import Queue as Q  # ver. < 3.0
+except ImportError:
+    import queue as Q
+
+
+sources = [0,1,3]
+dests = [2,5,11]
 
 # /* Event structure. */
 class event:
@@ -39,22 +48,30 @@ class NetworkSimulatorEnv(gym.Env):
         self.success_count = 0
         self.nnodes = 0
         self.nedges = 0
-        self.enqueued = []
-        self.nenqueued = []
-        self.interqueue = 1.0
+        self.enqueued = {}
+        self.nenqueued = {}
         self.interqueuen = []
-        self.event_queue = []
-        self.nlinks = []
-        self.links = [[]]
+        self.event_queue = Q.PriorityQueue()
+        self.nlinks = {}
+        self.links = collections.defaultdict(dict)
         self.total_routing_time = 0.0
         self.routed_packets = 0
+        self.total_hops = 0
         self.current_event = event(0.0, 0) #do I need to do this?
         self.internode = 1.0
         self.interqueue = 1.0
         self.active_packets = 0
-        self.callmean = 3 #network load
+        self.queuelimit = 1000
+        self.send_fail = 0
+        self.callmean = 1 #network load
 
+        self.distance = collections.defaultdict(dict)
+        self.shortest = collections.defaultdict(dict)
 
+        self.next_dest = 0
+        self.next_source = 0
+        self.injections = 0
+        self.queue_full = 0
 
 
     def _step(self, action):
@@ -62,84 +79,79 @@ class NetworkSimulatorEnv(gym.Env):
         self.done = False
 
         current_event = self.current_event
-        current_time = self.current_event.etime
-        current_node = self.current_event.node
+        current_time = current_event.etime
+        current_node = current_event.node
 
-        #if the link was good
-        if action < 0 or self.links[current_node][action] == None:
-            reward = -( (current_event.etime - current_event.qtime) + self.internode)
-            current_event.node = current_event.node #we don't move, line not needed obvi
+        time_in_queue = current_time - current_event.qtime - self.internode
 
-            heapq.heappush(self.event_queue, (current_time, current_event))
-            self.current_event = self.get_new_packet_bump()
-            return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
 
+        #if the link wasnt good
+        if action < 0 or action not in self.links[current_node]:
+            next_node = current_node
 
         else:
             next_node = self.links[current_node][action]
+        #handle the case where next_node is your destination
+        if next_node == current_event.dest:
 
-            print "next_node:{} and current_event.dest:{}".format(next_node,current_event.dest)
-            #handle the case where next_node is your destination
-            if next_node == current_event.dest:
-                self.routed_packets = self.routed_packets + 1
-                total_routing_time = total_routing_time + current_time - current_event.birth + self.internode
-                total_hops = total_hops + events[e].hops + 1
+            self.routed_packets +=  1
+            self.nenqueued[current_node] -= 1
+            self.total_routing_time +=  current_time - current_event.birth + self.internode
+            self.total_hops += current_event.hops + 1
 
-                reward = 1.0 #possibly change? totally random currently
-                self.active_packets = self.active_packets - 1
-                self.current_event = self.get_new_packet_bump()
+            reward = time_in_queue + self.internode  #possibly change? totally random currently
+            self.active_packets -= 1
 
-                return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
+            self.current_event = self.get_new_packet_bump()
 
-            else:
-                # #if the queue is full at the next node, set destination to self
-                # if self.nenqueued[next_node] >= queuelimit:
-                #     self.send_fail
-                #     next_node = current_node
+            return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
 
-                current_event.node = next_node #do the send!
-                current_event.hops = current_event.hops + 1
-                next_time = current_time + self.internode #change this to nexttime = Max(enqueued[n_to]+interqueuen[n_to], curtime+internode); eventually
-                current_event.etime = next_time
+        else:
+            # #if the queue is full at the next node, set destination to self
+            if self.nenqueued[next_node] >= self.queuelimit:
+                 self.send_fail = self.send_fail + 1
+                 next_node = current_node
 
-                self.enqueued[next_node] = next_time
-                self.nenqueued[next_node] = self.nenqueued[next_node] + 1
-                self.nenqueued[current_node] = self.nenqueued[current_node] - 1
+            current_event.node = next_node #do the send!
+            current_event.hops += 1
+            next_time = max(self.enqueued[next_node]+self.interqueuen[next_node], current_time + self.internode) #change this to nexttime = Max(enqueued[n_to]+interqueuen[n_to], curtime+internode); eventually
+            current_event.etime = next_time
+            self.enqueued[next_node] = next_time
 
-                heapq.heappush(self.event_queue, (current_time, current_event))
-                reward = -(( current_event.etime - current_event.qtime) + self.internode)
-                self.current_event = self.get_new_packet_bump()
+            self.event_queue.put((current_time, current_event))
+
+            self.nenqueued[next_node] += 1
+            self.nenqueued[current_node] -= 1
+
+            reward = time_in_queue
+            self.current_event = self.get_new_packet_bump()
 
 
-                return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
+            return ((current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest)), reward, self.done, {}
 
 
     def _reset(self):
         self.readin_graph()
+        self.compute_best()
         self.done = False
-        self.interqueuen = [self.interqueue]*self.nnodes		        #Initialized to interqueue. */
+        self.interqueuen = [self.interqueue]*self.nnodes
 
-        # self.action_space = spaces.Box(MAXLINKS (1,))
-        # self.observation_space = spaces.Box(low=np.asarray([0,0]), high=np.asarray([self.nnodes,self.nnodes]))
+        self.event_queue = Q.PriorityQueue()
+        self.total_routing_time= 0.0
 
-        self.event_queue = []
         self.enqueued = [0.0]*self.nnodes
         self.nenqueued = [0]*self.nnodes
 
-        # report_event = event(0.0, 0)
-        # report_event.source = REPORT
-        # report_event.etime = 0.0
-        # heappush(self.event_queue, (0.0, report_event))
-
         inject_event = event(0.0, 0)
         inject_event.source = INJECT
-        inject_event.etime = np.random.poisson(self.callmean)
-        heapq.heappush(self.event_queue, (0.0, inject_event))
+        inject_event.etime = float(np.random.poisson(self.callmean)) #change to 1.0 for hardcoding
+
+        self.event_queue.put((0.0, inject_event))
 
         self.current_event = self.get_new_packet_bump()
 
-        heapq.heappush(self.event_queue, (self.current_event.etime, self.current_event))
-        return (self.current_event.node, self.current_event.dest)
+
+        return((self.current_event.node, self.current_event.dest), (self.current_event.node, self.current_event.dest))
 
 
     ###########helper functions############################
@@ -149,8 +161,6 @@ class NetworkSimulatorEnv(gym.Env):
         self.nnodes = 0
         self.nedges = 0
 
-        self.nlinks = [None]*1000000 # this too
-        self.links = [[None]*1000000]*1000000 #please get back and fix this Duncan
         graph_file = open(self.graphname, "r")
 
         for line in graph_file:
@@ -182,18 +192,21 @@ class NetworkSimulatorEnv(gym.Env):
 
 
     def start_packet(self, time):
+        source = np.random.random_integers(0,self.nnodes-1) #change to  sources[self.next_source] for hardcoding
+        dest = np.random.random_integers(0,self.nnodes-1) #change to dests[self.next_dest]
 
-        source = np.random.random_integers(0,self.nnodes)
-        dest = np.random.random_integers(0,self.nnodes)
+        #print "STARTING NEW PACKET with src:{} and dest:{}".format(source, dest)
+        # self.next_source = self.next_source + 1
+        # self.next_dest = self.next_dest + 1
 
         #make sure we're not sending it to our source
         while source == dest:
-            dest = np.random.random_integers(0,self.nnodes)
+            dest = np.random.random_integers(0,self.nnodes-1)
 
         #is the queue full? if so don't inject the packet
-        # if self.nenqueued[soure] > queuelimit - 1:
-        #     self.queue_full = self.queue_full + 1
-        #     return(NIL) #deffo not needed
+        if self.nenqueued[source] > self.queuelimit - 1:
+             self.queue_full += 1
+             return(Nil)
 
         self.nenqueued[source] = self.nenqueued[source] + 1
 
@@ -204,12 +217,71 @@ class NetworkSimulatorEnv(gym.Env):
         return current_event
 
     def get_new_packet_bump(self):
-        current_event =  heapq.heappop(self.event_queue)[1]
+
+        current_event =  self.event_queue.get()[1]
+        #print "were popping this from the queue: current_event.source:{}, current_event.node:{}, current_event.dest:{}".format(current_event.source, current_event.node, current_event.dest)
+
         current_time = current_event.etime
 
         #make sure the event we're sending the state of back is not an injection
-        while current_event.source == INJECT:
-            current_event.etime += np.random.poisson(self.callmean)
+        while current_event.source == INJECT or current_event == Nil:
+            #print "WE SHOULD BE STARTING A NEW PACKET."
+            current_event.etime += float(np.random.poisson(self.callmean)) #change to 1.0 for hardcoding
+            #print "were pushing this onto the queue: current_event.source:{}, current_event.node:{}, current_event.dest:{}".format(current_event.source, current_event.node, current_event.dest)
+            #print "with priority:{}".format(current_time)
+            self.event_queue.put((current_time, current_event))
             current_event = self.start_packet(current_time)
+            if current_event != Nil:
+                self.injections = self.injections + 1
+            else:
+                current_event = self.event_queue.get()[1]
 
         return current_event
+
+    def pseudostep(self, action):
+
+        current_event = self.current_event
+        current_time = self.current_event.etime
+        current_node = self.current_event.node
+
+        #if the link wasnt good
+        if action < 0 or action not in self.links[current_node]:
+            reward = -( (current_event.etime - current_event.qtime) + self.internode)
+            return reward, (current_node, current_event.dest)
+
+        else:
+            next_node = self.links[current_node][action]
+
+            if next_node == current_event.dest:
+                reward =  -(( current_event.etime - current_event.qtime) + self.internode) #possibly change? totally random currently
+                return  reward, (next_node, current_event.dest)
+
+            else:
+                next_time = max(self.enqueued[next_node]+self.interqueuen[next_node], current_time + self.internode) #change this to nexttime = Max(enqueued[n_to]+interqueuen[n_to], curtime+internode); eventually
+                reward = -(( current_event.etime - current_event.qtime) + self.internode)
+                return reward, (next_node, current_event.dest)
+
+
+    def compute_best(self):
+
+        changing = True
+
+        for i in xrange(self.nnodes):
+            for j in  xrange(self.nnodes):
+                if i == j:
+                    self.distance[i][j] = 0
+                else:
+                    self.distance[i][j] = self.nnodes+1
+                self.shortest[i][j] = -1
+
+        while changing:
+            changing = False
+            for i in xrange(self.nnodes):
+                for j in  xrange(self.nnodes):
+                    #/* Update our estimate of distance for sending from i to j. */
+                    if i != j:
+                      for k in xrange(self.nlinks[i]):
+                        if  self.distance[i][j] >  1 + self.distance[self.links[i][k]][j]:
+                          self.distance[i][j] = 1 + self.distance[self.links[i][k]][j]	#/* Better. */
+                          self.shortest[i][j] = k
+                          changing = True
