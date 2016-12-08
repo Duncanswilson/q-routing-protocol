@@ -1,0 +1,151 @@
+Thu Nov 23 08:30:31 EST 1995
+
+**INTRO**
+
+This is some code that Justin Boyan and Michael Littman wrote two
+years ago to evaluate and demonstrate our reinforcement-learning
+network-routing algorithm. You need a C compiler and the "wish"
+windowing shell to run this.
+
+The ideas behind this work are described in several tech reports.
+
+ * Justin A. Boyan and Michael L. Littman.  Packet routing in
+dynamically changing networks: A reinforcement learning approach.  In
+Jack D. Cowan, Gerald Tesauro, and Joshua Alspector, editors, Advances
+in Neural Information Processing Systems, volume 6, pages 671--678.
+Morgan Kaufmann, San Francisco CA, 1993.
+	http://www.cs.brown.edu/people/mll/routing-nips.ps
+	(This document is also included in this tar archive.)
+
+ * Michael L. Littman and Justin A. Boyan.  A distributed
+reinforcement learning scheme for network routing.  In Joshua
+Alspector, Rodney Goodman, and Timothy X. Brown, editors, Proceedings
+of the 1993 International Workshop on Applications of Neural Networks
+to Telecommunications, pages 45--51.  Lawrence Erlbaum Associates,
+Hillsdale NJ, 1993.
+	http://www.cs.brown.edu/people/mll/routing-iwannt.ps
+	http://rose.mercury.acs.cmu.edu/bin/ft_http?DB=cstr_rfc&DOC=0000171
+	http://superbook.bellcore.com/SB/iwannt.html
+	http://www.cs.brown.edu/people/mll/routing-cmu-tr.ps
+
+
+				******
+
+IMPORTANT: This code is for exploring issues in reinforcement
+learning... the communication-network simulation is not intended to be
+realistic (and we have been told by many people that it is, in fact,
+not realistic).
+
+				******
+
+
+**CONTENTS OF THIS README FILE**
+
+  INTRO		What is all this?
+  CONTENTS	This list.
+  FILES		Descriptions of the files in this distribution.
+  COMPILE	How to get the thing ready to run.
+  RUN		How to start the thing running.
+  NETWORK FILES	How to create your own network layouts.
+  HINTS		Some thoughts on making better use of the simulator.
+  AUTHORS	Giving credit where credit is due.
+
+
+**FILES**
+
+  README		This file.  Describes the other files and itself.
+  Makefile		File for compiling the simulator (use "make").
+  router.tcl		The TCL code for the interactive viewer.
+  netsim1.c		C code for running the simulation.
+  standalone.c		Auxillary functions.
+  standalone.h		Header file for standalone.c.
+  6x6.net, lata.net	Sample communication networks.
+  routing-nips.ps	Our NIPS-94 paper describing the algorithm.
+
+**COMPILE**
+
+  Run "make"... this should create the necessary executable.  If not,
+you might want to edit the path names in the Makefile so they point to
+the proper files on your system.  We've only tested this on two
+systems (Solaris at Brown and SunOS at CMU), so we can't guarantee
+it'll work for you.  However, all the C code is very standard.
+
+   You will need to change the first line of the router.tcl file to
+point to your local version of "wish" (the tcl/tk window shell).
+"wish" is available via the web:
+
+	ftp://ftp.cs.berkeley.edu/ucb/tcl/tcl7.5a2.tar.gz
+	ftp://ftp.cs.berkeley.edu/ucb/tcl/tk4.1a2.tar.gz
+
+We haven't actually tested the TCL code with the latest releases, so
+it might require some hacking to get it to work.
+
+
+**RUN**
+
+Running "router.tcl graphname 6x6.net" creates two windows.  The main
+window contains a depiction of the network, and the second window is a
+time series plot of the observed load (red=average hops/packet,
+blue=average transmission time).
+
+In the main window, the thickness of links depicts their relative
+load.  There are buttons for quitting the simulation, and pausing it.
+
+Clicking on a link causes it to "go down," unable to route traffic.
+Clicking again brings it back.  (You can't create new links by
+clicking; you can just restore links that were previously brought
+down.  See the NETWORK FILES section for creating other network
+layouts.)
+
+Clicking on a node will display the current policy for routing packets
+to that node.  At low loads, you should see that a shortest-distance
+routing policy has been learned.  At higher loads, the system will
+learn to sometimes route over longer paths, so as to avoid bottleneck
+nodes and balance the load.  Press "clear node" to exit the policy
+display.
+
+The "alpha" slider controls the learning rate for the Q-learning, and
+the "load" slider controls the packet injection rate.
+
+There are a bunch of command line options that allow you to customize
+the simulation in various ways.  You can read the C code (function
+'get_globals') to get a list.
+
+
+**NETWORK FILES**
+
+   See lata.net and 6x6.net for examples.  The basic idea is that you
+need to specify a set of routing nodes and links between them.  A
+routing node has a node number (from 0 to the maximum number of nodes)
+and a display location (coordinates on the unit square).  For example:
+
+	1000 115 0.681250 0.504167 0
+
+creates node 115 and places it at location (0.681250, 0.504167).  The
+"1000" specifies that this is a node-creation command.  The "0" is a
+line terminator (I think it's in there just to make the parsing code
+simpler).
+
+   Nodes are linked together with linking commands.  For example:
+
+	2000 115 81 0
+
+links node 115 (just created) to node 81.  Again the "2000" means
+this is a link-creation command and the "0" is a line terminator.
+
+   Simple!
+
+
+**HINTS**
+
+There is a hack in the router.tcl file for changing the node size
+based on the network you are viewing.  This is important if you want
+things to not get too smooshed together.
+
+
+**AUTHORS**
+
+Michael L. Littman, Brown University (mlittman@cs.brown.edu)
+Justin A. Boyan, Carnegie Mellon University (jab@cs.cmu.edu)
+
+Please give us credit if you use this code.  Thank you!
