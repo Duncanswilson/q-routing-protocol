@@ -4,7 +4,7 @@ from random import random
 
 class networkTabularSARSAAgent(object):
     """
-    Agent implementing tabular Q-learning for the NetworkSimulatorEnv.
+    Agent implementing tabular SARSA-learning for the NetworkSimulatorEnv.
     """
 
     def __init__(self, num_nodes, num_actions, distance, nlinks):
@@ -15,31 +15,27 @@ class networkTabularSARSAAgent(object):
             "eps": 0.07,            # Epsilon in epsilon greedy policies
             "discount": 1,
             "n_iter": 10000000}        # Number of iterations
+
         self.q = np.zeros((num_nodes,num_nodes,num_actions))
 
-        for src in range(num_nodes):
-            for dest in range(num_nodes):
-                for action in range(nlinks[src]):
-                    self.q[src][dest][action] = distance[src][dest] #np.zeros((num_nodes,num_nodes,num_actions))
 
 
 
-    def act(self, state, nlinks,  eps=None):
+    def act(self, state, nlinks,  best=False):
         n = state[0]
         dest = state[1]
 
-        best = self.q[n][dest][0]
-        best_action = 0
-        for action in range(nlinks[n]):
-            if self.q[n][dest][action] < best:  #+ eps:
-                best = self.q[n][dest][action]
-                best_action = action
+        if best is True:
+            best = self.q[n][dest][0]
+            best_action = 0
+            for action in range(nlinks[n]):
+                if self.q[n][dest][action] < best:
+                    best = self.q[n][dest][action]
+                    best_action = action
+        else:
+            best_action = int(np.random.choice((0.0, nlinks[n])))
 
-        # if np.random.random() <= eps :
-        #     best_action = np.random.choice((0.0, nlinks[n]))
-
-
-        return best, best_action
+        return best_action
 
 
     def learn(self, current_event, next_event, reward, action, done, nlinks):
@@ -50,8 +46,8 @@ class networkTabularSARSAAgent(object):
         n_next = next_event[0]
         dest_next = next_event[1]
 
-        future, future_action = self.act(next_event, nlinks)
+        future_action = self.act(next_event, nlinks, True)
+        future = self.q[n_next][dest_next][future_action]
 
-        #Q learning
+        #Q-update
         self.q[n][dest][action] += (reward + self.config["discount"]*future - self.q[n][dest][action])* self.config["learning_rate"]
-        # #
