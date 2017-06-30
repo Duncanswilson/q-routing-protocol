@@ -1,9 +1,8 @@
 import gym
-import sarsa_agent
 import numpy as np
 from gym import spaces, envs
-from simulator import NetworkSimulatorEnv
-from sarsa_agent import networkTabularSARSAAgent
+from envs.simulator import NetworkSimulatorEnv
+from agents.sarsa_agent import networkTabularSARSAAgent
 
 ####
 # This script currently makes the agent use the a random policy to explor the state,action space
